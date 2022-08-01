@@ -1,20 +1,19 @@
 {
-  "name": "nsfw-checker",
-  "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next",
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "start": "next start"
   },
   "dependencies": {
-    "next": "12.2.3",
-    "react": "18.2.0",
-    "react-dom": "18.2.0"
-  },
-  "devDependencies": {
-    "eslint": "8.21.0",
-    "eslint-config-next": "12.2.3"
+    "@carbon/icons-react": "^10.3.0",
+    "axios": "^0.27.2",
+    "carbon-components": "^10.3.0",
+    "carbon-components-react": "^7.3.0",
+    "carbon-icons": "^7.0.7",
+    "next": "latest",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "sass": "^1.32.4"
   }
 }
