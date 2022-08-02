@@ -1,5 +1,5 @@
 import Head from "next/head";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AppBar,
   Container,
@@ -18,25 +18,33 @@ import {
   CircularProgress,
   Grid,
   CardMedia,
+  Alert,
 } from "@mui/material";
 import { AbcOutlined, Search } from "@mui/icons-material";
 import { getNsfwPosts } from "../api/posts";
+import { useRouter } from "next/router";
 
 export default function Home() {
   const [profileResults, setProfileResults] = useState(null);
   const [index, setIndex] = useState(25);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const { query } = useRouter();
 
   const submitProfile = (e) => {
     e.preventDefault();
-    setLoading(true);
     setIndex(25);
+    setError(null);
 
+    const profileUrl = e.target[0].value;
+    fetchResults(profileUrl);
+  };
+
+  const fetchResults = (user) => {
+    setLoading(true);
     const URL_REGEX =
       /^(http[s]?:\/\/www.reddit.com\/)?(user\/|u\/)?([\w:]{2,21})/g;
-    const profileUrl = e.target[0].value;
-    const username =
-      [...profileUrl.matchAll(URL_REGEX)].map((m) => m[3])[0] ?? profileUrl;
+    const username = [...user.matchAll(URL_REGEX)].map((m) => m[3])[0] ?? user;
 
     getNsfwPosts(username)
       .then((data) => {
@@ -44,9 +52,14 @@ export default function Home() {
         setLoading(false);
       })
       .catch((e) => {
-        console.log(e);
+        setError(e?.response?.data?.message ?? e.message);
+        setLoading(false);
       });
   };
+
+  useEffect(() => {
+    if (query?.user && !profileResults) fetchResults(query.user);
+  }, [query, profileResults]);
 
   const openLink = (image, specificUrl) => {
     if (!image) return window.open(specificUrl, "_blank");
@@ -181,7 +194,7 @@ export default function Home() {
               autoComplete="off"
             >
               <FormGroup sx={{ gap: "1em" }}>
-                <FormControl variant="standard">
+                <FormControl variant="standard" required>
                   <InputLabel htmlFor="input-profile">
                     Search a reddit profile or username...
                   </InputLabel>
@@ -197,9 +210,10 @@ export default function Home() {
                 </FormControl>
                 <FormControl>
                   <Button disabled={loading} type="submit" variant="outlined">
-                    {loading ? <CircularProgress /> : "Search"}
+                    {loading ? <CircularProgress size={20} /> : "Search"}
                   </Button>
                 </FormControl>
+                {error && <Alert severity="error">{error}</Alert>}
               </FormGroup>
             </Box>
           </CardContent>
@@ -264,7 +278,7 @@ export default function Home() {
         </Grid>
       )}
 
-      {profileResults && (
+      {profileResults && profileResults.nsfwPosts.length > index && (
         <Container
           maxWidth="sm"
           sx={{
