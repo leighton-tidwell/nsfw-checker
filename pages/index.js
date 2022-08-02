@@ -29,7 +29,7 @@ export default function Home() {
   const [index, setIndex] = useState(25);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { query } = useRouter();
+  const { query, replace } = useRouter();
 
   const submitProfile = (e) => {
     e.preventDefault();
@@ -49,6 +49,9 @@ export default function Home() {
     getNsfwPosts(username)
       .then((data) => {
         setProfileResults(data);
+        replace({
+          query: { ...query, user },
+        });
         setLoading(false);
       })
       .catch((e) => {
