@@ -1,43 +1,144 @@
-import axios from "axios";
+import Head from "next/head";
 import { useState } from "react";
 import {
+  AppBar,
+  Container,
+  Toolbar,
+  Typography,
+  Card,
+  CardContent,
+  Box,
+  Input,
+  FormControl,
+  InputLabel,
+  InputAdornment,
+  FormGroup,
   Button,
-  Header,
-  HeaderName,
-  Loading,
-  Content,
+  CardHeader,
+  CircularProgress,
   Grid,
-  Column,
-  Row,
-  TextInput,
-} from "carbon-components-react";
-import Head from "next/head";
+  CardMedia,
+} from "@mui/material";
+import { AbcOutlined, Search } from "@mui/icons-material";
+import { getNsfwPosts } from "../api/posts";
 
-const Home = () => {
-  const [profileUrl, setProfileUrl] = useState("");
+export default function Home() {
   const [profileResults, setProfileResults] = useState(null);
+  const [index, setIndex] = useState(25);
   const [loading, setLoading] = useState(false);
 
-  const submitProfile = () => {
+  const submitProfile = (e) => {
+    e.preventDefault();
     setLoading(true);
-    const indexOfUser = profileUrl.indexOf("user") + 4;
-    const username = profileUrl.slice(indexOfUser).replace(/\//g, "");
+    setIndex(25);
 
-    axios
-      .post("/api/user/nsfw-posts", { username })
-      .then((response) => {
-        const { data } = response;
-        console.log(data);
+    const URL_REGEX =
+      /^(http[s]?:\/\/www.reddit.com\/)?(user\/|u\/)?([\w:]{2,21})/g;
+    const profileUrl = e.target[0].value;
+    const username =
+      [...profileUrl.matchAll(URL_REGEX)].map((m) => m[3])[0] ?? profileUrl;
+
+    getNsfwPosts(username)
+      .then((data) => {
         setProfileResults(data);
         setLoading(false);
       })
-      .catch(() => {
-        setLoading(false);
+      .catch((e) => {
+        console.log(e);
       });
   };
 
+  const openLink = (image, specificUrl) => {
+    if (!image) return window.open(specificUrl, "_blank");
+    const url =
+      image?.variants?.mp4?.source.url ??
+      image?.variants?.gif?.source?.url ??
+      image?.source?.url;
+
+    window.open(url, "_blank");
+  };
+
+  const loadMore = () => {
+    setIndex((prevIndex) => prevIndex + 25);
+  };
+
+  const generateCard = (post) => {
+    //TODO: Check if video
+
+    // Check for embed
+    if (post?.secure_media_embed?.content) {
+      const embedLink =
+        post.secure_media_embed.content.match(/(?<=src=")(.*?)(?=")/g)[0];
+
+      return (
+        <Card
+          key={post.id}
+          sx={{
+            maxHeight: "500px",
+            cursor: "pointer",
+            aspectRatio: `${post.secure_media_embed.width} / ${post.secure_media_embed.height}`,
+          }}
+          onClick={() => openLink(null, embedLink)}
+        >
+          <CardMedia
+            component="iframe"
+            src={embedLink}
+            autoPlay={true}
+            height="100%"
+            width="100%"
+            scrolling="no"
+            allowFullScreen
+            controls
+            frameBorder="no"
+          />
+        </Card>
+      );
+    }
+
+    // Map images
+    return post?.preview?.images.map((image) => {
+      if (image?.variants?.mp4?.source?.url && !image?.variants?.gif) {
+        return (
+          <Card
+            key={post.id}
+            sx={{
+              maxHeight: "300px",
+              cursor: "pointer",
+              aspectRatio: `${image?.source?.width} / ${image?.source?.height}`,
+            }}
+            onClick={() => openLink(image)}
+          >
+            <CardMedia
+              component="video"
+              src={image?.variants?.mp4?.source.url}
+              autoPlay={true}
+            />
+          </Card>
+        );
+      } else {
+        return (
+          <Card
+            key={post.id}
+            sx={{
+              maxHeight: "300px",
+              cursor: "pointer",
+              aspectRatio: `${image?.source?.width} / ${image?.source?.height}`,
+            }}
+            onClick={() => openLink(image)}
+          >
+            <CardMedia
+              component="img"
+              image={image?.variants?.gif?.source?.url ?? image?.source?.url}
+              alt=""
+            />
+          </Card>
+        );
+      }
+    });
+  };
+
   return (
-    <div className="container">
+    <div>
       <Head>
         <title>NSFW Reddit Checker</title>
         <meta
@@ -46,78 +147,137 @@ const Home = () => {
         />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-
-      <Header aria-label="NSFW Checker">
-        <HeaderName href="/" prefix="NSFW">
-          Checker
-        </HeaderName>
-      </Header>
-      <Content>
-        <Grid>
-          <Row>
-            <Column>
-              <TextInput
-                type="text"
-                onChange={(e) => setProfileUrl(e.target.value)}
-                value={profileUrl}
-              />
-            </Column>
-            <Column>
-              <Button kind="primary" disabled={loading} onClick={submitProfile}>
-                {loading ? <Loading /> : "Look up"}
-              </Button>
-            </Column>
-          </Row>
-        </Grid>
-        {profileResults && (
-          <>
-            <div>
-              This user has <b>{profileResults.totalPosts}</b> total posts, of
-              those post <b>%{profileResults.percentage}</b> are NSFW.
-            </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                gap: "1em",
-                alignItems: "center",
-                justifyContent: "center",
-                marginTop: "1em",
-                marginBottom: "1em",
-                gridTemplateRows: "auto",
+      <AppBar position="static">
+        <Container maxWidth="xl">
+          <Toolbar disableGutters>
+            <AbcOutlined sx={{ display: { xs: "none", md: "flex" }, mr: 1 }} />
+            <Typography
+              variant="h6"
+              noWrap
+              component="a"
+              href="/"
+              sx={{
+                mr: 2,
+                display: { xs: "none", md: "flex" },
+                fontFamily: "monospace",
+                fontWeight: 700,
+                letterSpacing: ".3rem",
+                color: "inherit",
+                textDecoration: "none",
               }}
             >
-              {profileResults.nsfwPosts.map((post) =>
-                post?.preview?.images.map((image) => (
-                  <a
-                    style={{
-                      background: "#f4f4f4",
-                      minWidth: "200px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      padding: "1em",
-                      aspectRatio: `${image.source.width} / ${image.source.height}`,
-                    }}
-                    href={image.source.url}
+              NSFW CHECKER
+            </Typography>
+          </Toolbar>
+        </Container>
+      </AppBar>
+      <Container maxWidth="sm">
+        <Card sx={{ marginTop: "1em" }} variant="outlined">
+          <CardContent>
+            <Box
+              onSubmit={submitProfile}
+              component="form"
+              noValidate
+              autoComplete="off"
+            >
+              <FormGroup sx={{ gap: "1em" }}>
+                <FormControl variant="standard">
+                  <InputLabel htmlFor="input-profile">
+                    Search a reddit profile or username...
+                  </InputLabel>
+                  <Input
+                    fullWidth
+                    id="input-profile"
+                    endAdornment={
+                      <InputAdornment position="end">
+                        <Search />
+                      </InputAdornment>
+                    }
+                  />
+                </FormControl>
+                <FormControl>
+                  <Button disabled={loading} type="submit" variant="outlined">
+                    {loading ? <CircularProgress /> : "Search"}
+                  </Button>
+                </FormControl>
+              </FormGroup>
+            </Box>
+          </CardContent>
+        </Card>
+      </Container>
+      {profileResults && (
+        <Container maxWidth="sm" sx={{ marginTop: "1em" }}>
+          <Card sx={{ padding: "1em" }}>
+            <CardHeader title={profileResults.user} />
+            <CardContent>
+              <Typography variant="body1">
+                has submitted <b>{profileResults.totalPosts}</b> posts.
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                <b>{profileResults.nsfwPosts.length}</b> are NSFW.
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                <b>{profileResults.sfwPosts.length}</b> are SFW.
+              </Typography>
+              <Box sx={{ position: "relative", display: "inline-flex" }}>
+                <CircularProgress
+                  variant="determinate"
+                  value={profileResults.percentage}
+                />
+                <Box
+                  sx={{
+                    top: 0,
+                    left: 0,
+                    bottom: 0,
+                    right: 0,
+                    position: "absolute",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    component="div"
+                    color="text.secondary"
                   >
-                    <div
-                      style={{
-                        backgroundImage: `url(${image.source.url})`,
-                        backgroundSize: "cover",
-                        height: "100%",
-                        width: "100%",
-                      }}
-                    />
-                  </a>
-                ))
-              )}
-            </div>
-          </>
-        )}
-      </Content>
+                    {`${Math.round(profileResults.percentage)}%`}
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Container>
+      )}
+
+      {profileResults && (
+        <Grid
+          container
+          gap={2}
+          sx={{ marginTop: "1em", marginBottom: "1em" }}
+          alignItems="center"
+          justifyContent="center"
+        >
+          {profileResults.nsfwPosts
+            .slice(0, index)
+            .map((post) => generateCard(post))}
+        </Grid>
+      )}
+
+      {profileResults && (
+        <Container
+          maxWidth="sm"
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            marginTop: "1em",
+            marginBottom: "1em",
+          }}
+        >
+          <Button onClick={loadMore}>Load more</Button>
+        </Container>
+      )}
     </div>
   );
-};
-
-export default Home;
+}
