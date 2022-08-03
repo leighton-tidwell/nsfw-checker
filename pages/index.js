@@ -44,8 +44,10 @@ export default function Home() {
   const fetchResults = (user) => {
     setLoading(true);
     const URL_REGEX =
-      /^(http[s]?:\/\/www.reddit.com\/)?(user\/|u\/)?([\w:]{2,21})/g;
-    const username = [...user.matchAll(URL_REGEX)].map((m) => m[3])[0] ?? user;
+      /^(http[s]?:\/\/www.reddit.com\/)?(user\/|u\/)?([\D:]{2,21}|)/g;
+    const username =
+      [...user.matchAll(URL_REGEX)].map((m) => m[3])[0].replace("/", "") ??
+      user;
 
     getNsfwPosts(username)
       .then((data) => {
