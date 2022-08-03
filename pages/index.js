@@ -20,6 +20,7 @@ import {
   CardMedia,
   Alert,
 } from "@mui/material";
+// import PieChart from "../components/Piechart";
 import { AbcOutlined, Search } from "@mui/icons-material";
 import { getNsfwPosts } from "../api/posts";
 import { useRouter } from "next/router";
@@ -118,7 +119,7 @@ export default function Home() {
           <Card
             key={post.id}
             sx={{
-              maxHeight: "300px",
+              maxHeight: "500px",
               cursor: "pointer",
               aspectRatio: `${image?.source?.width} / ${image?.source?.height}`,
             }}
@@ -136,7 +137,7 @@ export default function Home() {
           <Card
             key={post.id}
             sx={{
-              maxHeight: "300px",
+              maxHeight: "500px",
               cursor: "pointer",
               aspectRatio: `${image?.source?.width} / ${image?.source?.height}`,
             }}
@@ -223,7 +224,16 @@ export default function Home() {
         </Card>
       </Container>
       {profileResults && (
-        <Container maxWidth="sm" sx={{ marginTop: "1em" }}>
+        <Container
+          maxWidth="sm"
+          sx={{
+            marginTop: "1em",
+            display: "flex",
+            gap: "1em",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
           <Card sx={{ padding: "1em" }}>
             <CardHeader title={profileResults.user} />
             <CardContent>
@@ -236,10 +246,28 @@ export default function Home() {
               <Typography variant="body2" color="text.secondary">
                 <b>{profileResults.sfwPosts.length}</b> are SFW.
               </Typography>
-              <Box sx={{ position: "relative", display: "inline-flex" }}>
+              <Typography variant="body2" color="text.secondary">
+                <b>
+                  {profileResults.totalPosts -
+                    profileResults.nsfwPosts.length -
+                    profileResults.sfwPosts.length}
+                </b>{" "}
+                were duplicates.
+              </Typography>
+              <Box
+                sx={{
+                  position: "relative",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "100%",
+                  marginTop: "1em",
+                }}
+              >
                 <CircularProgress
                   variant="determinate"
                   value={profileResults.percentage}
+                  size={100}
                 />
                 <Box
                   sx={{
@@ -264,6 +292,22 @@ export default function Home() {
               </Box>
             </CardContent>
           </Card>
+          {/* <Card sx={{ padding: "1em", flexGrow: "1" }}>
+            <CardHeader title="Subreddit breakdown" />
+            <CardContent>
+              <PieChart
+                width={200}
+                height={200}
+                data={profileResults.subredditBreakDown
+                  .sort((a, b) => b.percentage - a.percentage)
+                  .slice(0, 10)
+                  .map((subreddit) => ({
+                    name: subreddit.name,
+                    value: subreddit.percentage,
+                  }))}
+              />
+            </CardContent>
+          </Card> */}
         </Container>
       )}
 
